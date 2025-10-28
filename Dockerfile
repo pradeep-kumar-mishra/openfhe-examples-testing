@@ -43,17 +43,8 @@ RUN git clone --depth 1 https://github.com/openfheorg/openfhe-development.git /o
     make -j$(nproc) && make install && \
     cd / && rm -rf /opt/openfhe
 
-# Create non-root user (UID/GID can be overridden at runtime)
-ARG USERNAME=myuser
-ARG USER_UID=1000
-ARG USER_GID=1000
-RUN groupadd --gid $USER_GID $USERNAME && \
-    useradd --uid $USER_UID --gid $USER_GID --shell /bin/bash --create-home $USERNAME
 
 # Set workdir
 WORKDIR /fhe-examples
-
-# Switch to non-root user
-USER $USERNAME
 
 CMD ["bash"]

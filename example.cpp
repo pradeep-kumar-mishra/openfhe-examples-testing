@@ -20,15 +20,22 @@ int main() {
     cc->Enable(LEVELEDSHE);
     cc->Enable(ADVANCEDSHE);
 
-    lbcrypto::PrivateKey<lbcrypto::DCRTPoly> secretKey;
     KeyPair<DCRTPoly> keys = cc->KeyGen();
-    secretKey = keys.secretKey;
 
-    cc->EvalMultKeyGen(secretKey);
-    cc->EvalRotateKeyGen(secretKey, {1, 2});
-
-
+    cc->EvalMultKeyGen(keys.secretKey);
+    cc->EvalRotateKeyGen(keys.secretKey, {1, 2});
 
     std::cout << "CryptoContext generated successfully!" << std::endl;
+
+    std::vector<double> inputVector = {0.1, 0.2, 0.3, 0.4, 0.5};
+    Plaintext plainInputVector = cc->MakeCKKSPackedPlaintext(inputVector);
+    Ciphertext<DCRTPoly> encInputVector = cc->Encrypt(keys.publicKey, plainInputVector);
+
+    Ciphertext<DCRTPoly> encSquaredVector = cc->EvalMult(encInputVector, encInputVector);
+    Plaintext plainResult;
+    cc->Decrypt(keys.secretKey, encSquaredVector, &plainResult);
+    plainResult->SetLength(inputVector.size());
+    std::cout << "\nDecrypted squared vector: " << plainResult << std::endl;
+
     return 0;
 }
