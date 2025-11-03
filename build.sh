@@ -1,6 +1,6 @@
 #!/bin/bash
 
-if [ "$1" == "1" ]; then
+if [ ! -d build ] || [ "$1" == "1" ]; then
     echo "Removing build directory and reconfiguring..."
     rm -rf build
     cmake -S . -B build
