@@ -2,6 +2,18 @@
   "version": "0.2.0",
   "configurations": [
     {
+      // macOS: CodeLLDB drives lldb natively; cppdbg's lldb-mi hangs on step in/over
+      "name": "Debug example (CodeLLDB)",
+      "type": "lldb",
+      "request": "launch",
+      "program": "${workspaceFolder}/build/${fileBasenameNoExtension}",
+      "cwd": "${workspaceFolder}",
+      "preLaunchTask": "cmake: build",
+      "initCommands": [
+        "settings set target.process.thread.step-avoid-regexp ^std::"
+      ]
+    },
+    {
       "name": "Debug example (step into OpenFHE)",
       "type": "cppdbg",
       "request": "launch",
