@@ -1,35 +1,33 @@
-cmake_minimum_required (VERSION 3.25)
-
-project(OpenfheNN CXX)
-add_compile_definitions(BOOST_ALLOW_DEPRECATED_HEADERS)
+cmake_minimum_required(VERSION 3.25)
+project(openfhe_examples CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
-
-option( BUILD_STATIC "Set to ON to include static versions of the library" OFF)
-
-find_package(OpenFHE)
-find_package(yaml-cpp CONFIG REQUIRED)
-
-set( CMAKE_CXX_FLAGS ${OpenFHE_CXX_FLAGS} )
-
-include_directories( ${OPENMP_INCLUDES} )
-include_directories( ${OpenFHE_INCLUDE} )
-include_directories( ${OpenFHE_INCLUDE}/third-party/include )
-include_directories( ${OpenFHE_INCLUDE}/core )
-include_directories( ${OpenFHE_INCLUDE}/pke )
-include_directories( ${OpenFHE_INCLUDE}/binfhe )
-
-link_directories( ${OpenFHE_LIBDIR} )
-link_directories( ${OPENMP_LIBRARIES} )
-if(BUILD_STATIC)
-    set( CMAKE_EXE_LINKER_FLAGS "${OpenFHE_EXE_LINKER_FLAGS} -static")
-    link_libraries( ${OpenFHE_STATIC_LIBRARIES} )
-else()
-    set( CMAKE_EXE_LINKER_FLAGS ${OpenFHE_EXE_LINKER_FLAGS} )
-    link_libraries( ${OpenFHE_SHARED_LIBRARIES} )
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)   # IntelliSense
+if(NOT CMAKE_BUILD_TYPE)
+    set(CMAKE_BUILD_TYPE Debug)
 endif()
 
-add_executable(example example.cpp)
+# Debug OpenFHE built by ./setup_openfhe.sh
+set(OPENFHE_INSTALL_DIR "${CMAKE_SOURCE_DIR}/../openfhe-install" CACHE PATH "OpenFHE install prefix")
+list(PREPEND CMAKE_PREFIX_PATH "${OPENFHE_INSTALL_DIR}")
+find_package(OpenFHE CONFIG REQUIRED)
 
-target_link_libraries(example PRIVATE yaml-cpp)
+# OpenFHE_CXX_FLAGS contains -O3; the debug flags come after it, so -O0 wins
+set(CMAKE_CXX_FLAGS "${OpenFHE_CXX_FLAGS}")
+set(CMAKE_CXX_FLAGS_DEBUG "-O0 -g3 -fno-omit-frame-pointer")
+set(CMAKE_EXE_LINKER_FLAGS "${OpenFHE_EXE_LINKER_FLAGS}")
+set(CMAKE_BUILD_RPATH "${OpenFHE_LIBDIR}")   # run without LD/DYLD_LIBRARY_PATH
+
+include_directories(
+    ${OpenFHE_INCLUDE}
+    ${OpenFHE_INCLUDE}/third-party/include
+    ${OpenFHE_INCLUDE}/core
+    ${OpenFHE_INCLUDE}/pke
+    ${OpenFHE_INCLUDE}/binfhe)
+link_directories(${OpenFHE_LIBDIR})
+
+foreach(name ckks ckks_fbt bfv bgv)
+    add_executable(${name} ${name}.cpp)
+    target_link_libraries(${name} PRIVATE ${OpenFHE_SHARED_LIBRARIES})
+endforeach()

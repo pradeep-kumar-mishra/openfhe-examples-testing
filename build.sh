@@ -1,12 +1,14 @@
 #!/bin/bash
+# Usage: ./build.sh [1]    builds and runs ckks, ckks_fbt, bfv and bgv; 1 = clean rebuild
+set -e
 
 if [ "$1" == "1" ]; then
-    echo "Removing build directory and reconfiguring..."
     rm -rf build
-    cmake -S . -B build
 fi
 
-echo "Building the project..."
+cmake -S . -B build
 cmake --build build --parallel
-export LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH
-./build/example
+for name in ckks ckks_fbt bfv bgv; do
+    echo "===== $name"
+    ./build/$name
+done

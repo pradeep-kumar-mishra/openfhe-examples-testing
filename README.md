@@ -1,96 +1,59 @@
-# 🔐 OpenFHE Examples
+# OpenFHE Examples
 
-If you want to **quickly test something** with OpenFHE — whether it’s encryption parameters, CKKS/BFV schemes, circuits, algorithms, or YAML-based configurations — this repository is your go-to standalone sandbox.
+A sandbox for OpenFHE experiments that builds OpenFHE in Debug mode next to the repo, so you can step from your code into the library's source in VS Code (lldb on macOS, gdb on Linux).
 
-It provides a minimal, self-contained Dockerized environment to write, build, and run your own OpenFHE examples without installing anything locally.
-
----
-
-## 📦 Features
-
-- 🐳 Docker-based build and run environment  
-- 🔐 Preinstalled OpenFHE with a working CKKS example  
-- 📄 YAML support via `yaml-cpp`  
-- 💡 Minimal CMake-based build system  
-- 🧪 Easily add your own `.cpp` files to experiment  
-
----
-
-## 📄 Included Example
-
-This repo includes a ready-to-run example file: [`example.cpp`](./example.cpp)
-
-It demonstrates how to:
-
-- Set up an OpenFHE CKKS crypto context
-- Configure encryption parameters (scaling mod size, ring dimension, etc.)
-- Enable PKE, key switching, leveled and advanced SHE modes
-
-You can modify or replace `example.cpp` to run your own logic or test custom algorithms.
-
----
-
-## 🚀 Quick Start
-
-### 1. 🛠 Build & Run the Environment
-
-```bash
-./docker_run.sh
-````
-
-This will automatically build the Docker image (if not already built), launch the container, and drop you into a shell inside the container.
-
----
-
-## 🛠 Inside the Container
-
-Once you're inside the container shell, build and run your code using:
-
-### ✅ If you changed only source files (e.g., `example.cpp`):
-
-```bash
-./build.sh
+```text
+openfhe-debug/
+├── openfhe-development/        OpenFHE source + build (kept: debug info points here)
+├── openfhe-install/            OpenFHE Debug install, used by CMakeLists.txt
+└── openfhe-examples-testing/   this repo
 ```
 
-Performs an incremental build without rerunning CMake.
+## Requirements
 
----
+- macOS: `xcode-select --install`, `brew install cmake`
+- Linux (Ubuntu/Debian): `sudo apt install build-essential git gdb` and CMake ≥ 3.25 (`pip install "cmake>=3.25"` on Ubuntu 22.04)
+- VS Code with the C/C++ extension (`ms-vscode.cpptools`)
 
-### ♻️ If you changed `CMakeLists.txt` or added new source files:
-
-```bash
-./build.sh 1
-```
-
-This removes the previous `build/` directory, reruns CMake, and builds from scratch.
-
----
-
-## 🔁 Optional `docker_run.sh` Flags
-
-* Clean build image without cache:
-
-  ```bash
-  ./docker_run.sh --clean
-  ```
-
-* Use a custom image name:
-
-  ```bash
-  ./docker_run.sh --name my-custom-image
-  ```
-
-You can combine both:
+## Setup (once per machine)
 
 ```bash
-./docker_run.sh --clean --name my-custom-image
+./setup_openfhe.sh [tag]   # default v1.6.1, ~10-20 min
 ```
 
----
+Run it on every new machine; don't copy `build/` or `openfhe-install/`, because their debug info holds the source paths of the machine that built them.
 
-## ✅ Requirements
+## Build and run
 
-* [Docker](https://www.docker.com/)
-* Bash shell (Linux/macOS or WSL on Windows)
+| Program | Circuit |
+|---|---|
+| `ckks.cpp` | bootstrap → multiply → rotate |
+| `ckks_fbt.cpp` | functional bootstrapping (experimental): RLWE → CKKS → LUT f(x) = x² mod 16 → RLWE |
+| `bfv.cpp`, `bgv.cpp` | leveled add, multiply, rotate (OpenFHE has no BFV/BGV bootstrapping) |
 
-No need to install OpenFHE, CMake, or compilers locally — everything runs inside Docker.
+Each `<name>.cpp` builds to `build/<name>`. To add a program, add its name to the `foreach` in `CMakeLists.txt`.
+
+```bash
+./build.sh [1]   # builds and runs all four; 1 = clean rebuild
+```
+
+## Debug in VS Code
+
+1. Open this folder and one of the programs, set breakpoints (the `[BP]` lines are good starts).
+2. With that file open, press **F5**. It builds first, then debugs it.
+3. **F11** step into, **F10** step over, **Shift+F11** step out, **F5** continue.
+
+To break inside OpenFHE, open files from `../openfhe-development/src`.
+
+| Operation | Implementation (under `../openfhe-development/src/pke/lib`) |
+|---|---|
+| `EvalBootstrapSetup` / `EvalBootstrapKeyGen` | `scheme/ckksrns/ckksrns-fhe.cpp` |
+| `EvalBootstrap` | `ckksrns-fhe.cpp`: ModRaise → `EvalCoeffsToSlots` → approximate mod reduction → `EvalSlotsToCoeffs` |
+| `EvalFBTSetup` / `EvalFBT` | `ckksrns-fhe.cpp`; RLWE ↔ CKKS conversion in `schemelet/rlwe-mp.cpp` |
+| Chebyshev series | `scheme/ckksrns/ckksrns-advancedshe.cpp` (`EvalChebyshevSeriesPS`) |
+| CKKS `EvalMult`, rescale | `schemerns/rns-leveledshe.cpp`, `scheme/ckksrns/ckksrns-leveledshe.cpp` |
+| BFV `EvalMult` (scale by t/Q) | `scheme/bfvrns/bfvrns-leveledshe.cpp` (`LeveledSHEBFVRNS::EvalMult`) |
+| BGV `EvalMult`, modulus switching | `schemerns/rns-leveledshe.cpp`, `scheme/bgvrns/bgvrns-leveledshe.cpp` (`ModReduceInternalInPlace`) |
+| Relinearize, rotations | `keyswitch/keyswitch-hybrid.cpp` |
+| Encrypt / Decrypt | `schemerns/rns-pke.cpp`, `scheme/bfvrns/bfvrns-pke.cpp`, `encoding/ckkspackedencoding.cpp`, `encoding/packedencoding.cpp` |
+| NTT / RNS math | `src/core/lib/math/` |

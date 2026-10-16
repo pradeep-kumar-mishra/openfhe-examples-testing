@@ -1,0 +1,10 @@
+{
+  "C_Cpp.default.compileCommands": "${workspaceFolder}/build/compile_commands.json",
+  // "Go to Definition" lands in the OpenFHE .cpp files, not just headers
+  "C_Cpp.default.browse.path": ["${workspaceFolder}", "${workspaceFolder}/../openfhe-development/src"],
+  "C_Cpp.default.browse.limitSymbolsToIncludedHeaders": false,
+  // Hide "Run/Debug C/C++ File": it compiles one file with plain clang++ and no OpenFHE paths
+  "C_Cpp.debugShortcut": false,
+  "files.associations": { "*.h": "cpp" },
+  "search.exclude": { "build/**": true }
+}
